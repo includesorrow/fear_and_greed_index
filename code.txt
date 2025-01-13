@@ -1,0 +1,77 @@
+// @name FearAndGreedWidget
+// @desc Display Fear & Greed Index in a widget
+// @icon 📈
+// @category finance
+
+function getTodayString() {
+  let now = new Date();
+  let yyyy = now.getFullYear();
+  let mm = String(now.getMonth() + 1).padStart(2, "0");
+  let dd = String(now.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+async function fetchFearAndGreed(dateStr) {
+  let url = `https://production.dataviz.cnn.io/index/fearandgreed/graphdata/${dateStr}`;
+  let req = new Request(url);
+  return await req.loadJSON();
+}
+
+async function createWidget() {
+  let widget = new ListWidget();
+  widget.backgroundColor = new Color("#000000");  // 검정색 배경
+  
+  let todayStr = getTodayString();
+  let data;
+  
+  try {
+    data = await fetchFearAndGreed(todayStr);
+  } catch (e) {
+    // 만약 404나 기타 에러가 발생할 경우
+    let errorText = widget.addText("API Error: " + e);
+    errorText.textColor = Color.red();
+    return widget;
+  }
+  
+  // Fear & Greed
+  let score = data.fear_and_greed.score;  
+  let rating = data.fear_and_greed.rating;
+  let ts = data.fear_and_greed.timestamp;
+  
+  // 헤더
+  let header = widget.addText("CNN Fear & Greed Index");
+  header.font = Font.boldSystemFont(16);
+  header.textColor = Color.white();
+  
+  // 날짜 표시(실제 timestamp가 당일과 다를 수 있음)
+  let dateLine = widget.addText(`Date: ${ts}`); 
+  dateLine.font = Font.systemFont(10);
+  dateLine.textColor = new Color("#999999");
+  
+  widget.addSpacer(4);
+  
+  // 지수
+  let scoreLine = widget.addText(`Score: ${score.toFixed(2)}`);
+  scoreLine.textColor = new Color("#80dfff");
+  scoreLine.font = Font.systemFont(14);
+  
+  // 상태 (fear, greed 등)
+  let ratingLine = widget.addText(`Rating: ${rating}`);
+  ratingLine.textColor = Color.white();
+  ratingLine.font = Font.systemFont(14);
+  
+  widget.addSpacer();
+  
+  // CNN 원본 페이지로 이동 (탭했을 때 열릴 URL)
+  widget.url = "https://money.cnn.com/data/fear-and-greed/";
+  
+  return widget;
+}
+
+async function main() {
+  let widget = await createWidget();
+  Script.setWidget(widget);
+  Script.complete();
+}
+
+await main();
